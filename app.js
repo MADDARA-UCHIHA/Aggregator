@@ -4,14 +4,17 @@
   const CATEGORIES = ["History", "Automotive", "Real Estate", "Electronics", "Books", "News", "Science & Tech"];
   const FREQUENT = ["iPhone 16", "World War II", "Tesla Model 3", "Atomic Habits"];
   const FEATURED_LIMIT = 8;
+  const PAGE_SIZE = 60;
 
   const $ = id => document.getElementById(id);
   const hero = $("hero"), results = $("results"), input = $("q"), list = $("list"), sum = $("sum");
-  const featuredList = $("featured-list");
+  const featuredList = $("featured-list"), loadMoreButton = $("load-more");
 
   let category = null;
   let query = "";
   let controller = null;
+  let loadedCount = 0;
+  let totalCount = 0;
 
   const esc = value => String(value).replace(/[&<>"']/g, char => ({
     "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"
@@ -20,7 +23,7 @@
   function safeHref(value) {
     try {
       const url = new URL(value);
-      return /^https?:$/.test(url.protocol) && !url.username && !url.password ? url.href : null;
+      return url.protocol === "https:" && !url.username && !url.password ? url.href : null;
     } catch {
       return null;
     }
@@ -71,11 +74,11 @@
     open.rel = "noopener noreferrer";
     open.textContent = "Open Source ↗";
 
-    const wikipediaUrl = new URL("https://en.wikipedia.org/w/index.php");
-    wikipediaUrl.searchParams.set("search", item.title);
+    const wikipediaUrl = safeHref(item.wikipediaUrl);
+    if (!wikipediaUrl) return null;
     const wikipedia = document.createElement("a");
     wikipedia.className = "wiki";
-    wikipedia.href = wikipediaUrl.href;
+    wikipedia.href = wikipediaUrl;
     wikipedia.target = "_blank";
     wikipedia.rel = "noopener noreferrer";
     wikipedia.textContent = "Wikipedia ↗";
@@ -85,9 +88,10 @@
     return card;
   }
 
-  function renderCards(container, items) {
+  function renderCards(container, items, append = false) {
     const cards = items.map(createCard).filter(Boolean);
-    container.replaceChildren(...cards);
+    if (append) container.append(...cards);
+    else container.replaceChildren(...cards);
     return cards.length;
   }
 
@@ -104,7 +108,7 @@
 
   async function fetchResults(params, signal) {
     const response = await fetch(`/api/search?${params}`, {
-      signal,
+      ...(signal ? { signal } : {}),
       headers: { Accept: "application/json" }
     });
 
@@ -116,15 +120,20 @@
     }
 
     if (!response.ok) throw new Error(data.error || `Request failed (${response.status}).`);
-    if (!data || !Array.isArray(data.results)) throw new Error("The search service returned invalid results.");
-    return data.results;
+    if (!data || !Array.isArray(data.results) || !Number.isSafeInteger(data.total) ||
+        !Number.isSafeInteger(data.offset) || !Number.isSafeInteger(data.limit) ||
+        data.total < 0 || data.offset < 0 || data.limit < 1 ||
+        data.results.length > data.limit || data.offset + data.results.length > data.total) {
+      throw new Error("The search service returned invalid results.");
+    }
+    return data;
   }
 
   async function loadFeatured() {
     const params = new URLSearchParams({ limit: String(FEATURED_LIMIT) });
     try {
-      const items = await fetchResults(params);
-      if (!renderCards(featuredList, items)) {
+      const data = await fetchResults(params);
+      if (!renderCards(featuredList, data.results)) {
         renderState(featuredList, "No sources available", "Please check back later.");
       }
     } catch {
@@ -153,6 +162,7 @@
     results.classList.add("active");
     sum.textContent = "Searching…";
     list.innerHTML = Array.from({ length: 4 }, () => '<div class="skel" aria-hidden="true"></div>').join("");
+    loadMoreButton.hidden = true;
   }
 
   function renderError(message) {
@@ -167,20 +177,26 @@
     list.firstElementChild.append(retry);
   }
 
-  function renderResults(items) {
-    const visibleItems = items.filter(item =>
+  function renderResults(data, append = false) {
+    const visibleItems = data.results.filter(item =>
       item && typeof item.title === "string" && typeof item.source === "string" &&
-      typeof item.description === "string" && safeHref(item.url)
+      typeof item.description === "string" && safeHref(item.url) && safeHref(item.wikipediaUrl)
     );
     const label = query ? ` for “<strong>${esc(query)}</strong>”` : "";
     const scope = category ? ` in <strong>${esc(category)}</strong>` : "";
-    sum.innerHTML = `<strong>${visibleItems.length}</strong> result${visibleItems.length === 1 ? "" : "s"}${label}${scope}`;
+    loadedCount = data.offset + visibleItems.length;
+    totalCount = data.total;
+    const noun = totalCount === 1 ? "result" : "results";
+    sum.innerHTML = `Showing <strong>${loadedCount}</strong> of <strong>${totalCount}</strong> ${noun}${label}${scope}`;
 
-    if (!visibleItems.length) {
+    if (!visibleItems.length && !append) {
       renderState(list, "No results found", `Try a different keyword${category ? " or choose another category" : ""}.`);
-      return;
+    } else {
+      renderCards(list, visibleItems, append);
     }
-    renderCards(list, visibleItems);
+    loadMoreButton.hidden = loadedCount >= totalCount;
+    loadMoreButton.disabled = false;
+    loadMoreButton.textContent = "Load more results";
   }
 
   async function search(term) {
@@ -188,16 +204,43 @@
     showLoading();
     if (controller) controller.abort();
     controller = new AbortController();
+    loadedCount = 0;
+    totalCount = 0;
 
     const params = new URLSearchParams();
     if (term) params.set("q", term);
     if (category) params.set("category", category);
+    params.set("limit", String(PAGE_SIZE));
+    params.set("offset", "0");
 
     try {
-      renderResults(await fetchResults(params, controller.signal));
+      const data = await fetchResults(params, controller.signal);
+      renderResults(data);
     } catch (error) {
       if (error.name === "AbortError") return;
       renderError(error.message || "Network error. Check your connection and try again.");
+    }
+  }
+
+  async function loadMore() {
+    if (loadMoreButton.disabled || loadedCount >= totalCount || !controller) return;
+    loadMoreButton.disabled = true;
+    loadMoreButton.textContent = "Loading…";
+
+    const params = new URLSearchParams();
+    if (query) params.set("q", query);
+    if (category) params.set("category", category);
+    params.set("limit", String(PAGE_SIZE));
+    params.set("offset", String(loadedCount));
+
+    try {
+      const data = await fetchResults(params, controller.signal);
+      if (data.offset !== loadedCount) throw new Error("The search service returned an unexpected page.");
+      renderResults(data, true);
+    } catch (error) {
+      if (error.name === "AbortError") return;
+      loadMoreButton.disabled = false;
+      loadMoreButton.textContent = `${error.message || "Could not load more."} Retry`;
     }
   }
 
@@ -231,6 +274,13 @@
     else if (category) search("");
     else input.focus();
   });
+
+  $("browse-all").addEventListener("click", () => {
+    category = null;
+    renderCategories();
+    search("");
+  });
+  loadMoreButton.addEventListener("click", loadMore);
 
   list.addEventListener("click", event => {
     if (event.target.id === "retry") search(query);

@@ -74,6 +74,10 @@
   .card-links{display:flex;flex-wrap:wrap;gap:.65rem}
   .wiki{color:var(--accent);font-size:.85rem;text-decoration:none}
   .wiki:hover{text-decoration:underline}
+  .browse,.more{display:block;margin:1rem auto;padding:.65rem 1.2rem;border:1px solid var(--accent2);border-radius:999px;color:var(--accent);transition:background .2s}
+  .browse:hover,.more:hover:not(:disabled){background:rgba(52,211,153,.12)}
+  .more:disabled{cursor:wait;opacity:.7}
+  .more[hidden]{display:none}
 
   footer{text-align:center;padding:1.5rem;font-size:.8rem;color:var(--muted);border-top:1px solid var(--border)}
 
@@ -104,6 +108,7 @@
     <section id="featured" aria-labelledby="featured-title">
       <h2 id="featured-title">Explore curated sources</h2>
       <p>Start with these useful links, or search the full collection.</p>
+      <button class="browse" id="browse-all" type="button">Browse all curated sources</button>
       <div class="links" id="featured-list" aria-live="polite">
         <div class="skel" aria-hidden="true"></div>
         <div class="skel" aria-hidden="true"></div>
@@ -117,6 +122,7 @@
       <button class="back" id="back" type="button">← Back to search</button>
     </div>
     <div class="list" id="list"></div>
+    <button class="more" id="load-more" type="button" hidden>Load more results</button>
   </section>
 </main>
 
