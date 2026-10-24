@@ -3,7 +3,7 @@
 Curated qidiruv. Natijalar faqat `data/links.txt` dagi linklardan keladi. API kalit yoki build kerak emas.
 
 ## Tuzilma
-- `index.html` va `app.js` — frontend; bosh sahifada tavsiya etilgan manbalar ko'rsatiladi
+- `index.html`, `app.js` va `assets/aggregate-logo.png` — frontend va sayt logosi
 - `api/search.js` — Vercel serverless qidiruv (`GET /api/search?q=&category=&limit=&offset=`)
 - `data/links.txt` — linklar bazasi (bir qator = bir sayt)
 - `scripts/check-links.js` — linklarni tekshirish
@@ -14,6 +14,8 @@ Curated qidiruv. Natijalar faqat `data/links.txt` dagi linklardan keladi. API ka
 { category: "News", source: "BBC", title: "...", description: "...", url: "https://...", wikipediaUrl: "https://en.wikipedia.org/w/index.php?search=..." },
 ```
 Kategoriya faqat: History, Automotive, Real Estate, Electronics, Books, News, Science & Tech. Har bir manba yozuvida manba URL'i va alohida `wikipediaUrl` qidiruv manzili saqlanadi. `Browse all curated sources` tugmasi katalogdagi barcha yozuvlarni 60 tadan sahifalab ko'rsatadi; manba URL'i takrorlangan yozuvlar ham alohida ko'rsatiladi.
+
+Sayt sarlavhasidagi Wikipedia havolasi `https://www.wikipedia.org/` manziliga olib boradi.
 
 `/api/search` bo'sh so'rov bilan barcha manbalarni topadi. `limit` 1–60 oralig'ida sahifa hajmini, `offset` keyingi sahifaning boshlanishini belgilaydi.
 

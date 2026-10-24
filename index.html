@@ -18,9 +18,11 @@
   button{cursor:pointer;border:none;background:none}
   :focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 
-  .navbar{position:sticky;top:0;z-index:10;background:linear-gradient(90deg,#0f172a 0%,#064e3b 100%);border-bottom:1px solid var(--border);padding:.9rem clamp(1rem,4vw,2.5rem)}
-  .logo{display:inline-block;font-size:1.35rem;font-weight:700;letter-spacing:-.02em;color:var(--accent);cursor:pointer;user-select:none}
-  .logo span{color:var(--text);font-weight:500}
+  .navbar{position:sticky;top:0;z-index:10;display:flex;align-items:center;justify-content:space-between;gap:1rem;background:linear-gradient(90deg,#0f172a 0%,#064e3b 100%);border-bottom:1px solid var(--border);padding:.7rem clamp(1rem,4vw,2.5rem)}
+  .logo{display:block;flex:0 1 248px;width:min(248px,55vw);padding:.25rem .55rem;border-radius:10px;background:#fff;line-height:0}
+  .logo img{display:block;width:100%;height:auto}
+  .wikipedia-home{flex:0 0 auto;padding:.55rem .9rem;border:1px solid var(--border);border-radius:999px;color:var(--text);font-size:.9rem;font-weight:600;text-decoration:none;transition:color .2s,border-color .2s,background .2s}
+  .wikipedia-home:hover{color:var(--accent);border-color:var(--accent2);background:rgba(52,211,153,.08)}
 
   .cats{display:flex;gap:.5rem;overflow-x:auto;padding:.9rem clamp(1rem,4vw,2.5rem);background:var(--elev);border-bottom:1px solid var(--border);scrollbar-width:none}
   .cats::-webkit-scrollbar{display:none}
@@ -91,7 +93,8 @@
 <body>
 
 <header class="navbar">
-  <a class="logo" id="logo" href="#" aria-label="AGGREGATE.io home">AGGREGATE<span>.io</span></a>
+  <a class="logo" id="logo" href="#" aria-label="AGGREGATE.io home"><img src="/assets/aggregate-logo.png" alt="AGGREGATE.io"></a>
+  <a class="wikipedia-home" href="https://www.wikipedia.org/" target="_blank" rel="noopener noreferrer">Wikipedia ↗</a>
 </header>
 
 <nav class="cats" id="cats" aria-label="Categories"></nav>
