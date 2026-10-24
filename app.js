@@ -2,7 +2,7 @@
   "use strict";
 
   const CATEGORIES = ["History", "Automotive", "Real Estate", "Electronics", "Books", "News", "Science & Tech"];
-  const FREQUENT = ["iPhone 16", "World War II", "Tesla Model 3", "Atomic Habits"];
+  const FREQUENT = ["iPhone", "World War II", "Tesla", "Atomic Habits"];
   const FEATURED_LIMIT = 8;
   const PAGE_SIZE = 60;
 

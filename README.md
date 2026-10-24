@@ -17,6 +17,8 @@ Kategoriya faqat: History, Automotive, Real Estate, Electronics, Books, News, Sc
 
 `/api/search` bo'sh so'rov bilan barcha manbalarni topadi. `limit` 1–60 oralig'ida sahifa hajmini, `offset` keyingi sahifaning boshlanishini belgilaydi.
 
+Qidiruv barcha so'zlari mos kelgan natijalarni oldinga chiqaradi; ular topilmasa, mos so'zlar bo'yicha tegishli natijalarni ko'rsatadi. Mashhur qidiruv tugmalari ham katalogdagi mavjud mavzulardan foydalanadi.
+
 ## Tekshirish
 ```
 node scripts/check-links.js

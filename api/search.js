@@ -4,7 +4,7 @@
  * GET /api/search?q=<text>&category=<name>&limit=<1-60>&offset=<number>
  *  - Reads data/links.txt (your curated link list), parses each entry,
  *    removes invalid URLs, and returns a page of the best matches.
- *  - Every search term must appear in title, source or description.
+ *  - Exact all-term matches are ranked first, with relevant partial matches as a fallback.
  *  - An empty query lists curated sources for the homepage.
  *  - No external API keys required.
  */
@@ -63,11 +63,55 @@ function loadLinks() {
   return items;
 }
 
-function search(query, category) {
-  const terms = query.toLowerCase().split(/\s+/).filter(Boolean);
-  const scored = [];
+function normalizeSearchText(value) {
+  return value
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, " ")
+    .trim();
+}
 
-  for (const item of loadLinks()) {
+function searchTokens(value) {
+  const tokens = new Set(normalizeSearchText(value).split(/\s+/).filter(Boolean));
+  for (const token of tokens) {
+    if (token.length > 4 && token.endsWith("s") && !token.endsWith("ss")) {
+      tokens.add(token.slice(0, -1));
+    }
+  }
+  return tokens;
+}
+
+function search(query, category) {
+  const normalizedQuery = normalizeSearchText(query);
+  const terms = [...new Set(normalizedQuery.split(/\s+/).filter(Boolean))];
+  const items = loadLinks().map(item => ({
+    item,
+    title: normalizeSearchText(item.title),
+    source: normalizeSearchText(item.source),
+    description: normalizeSearchText(item.description),
+    titleTokens: searchTokens(item.title),
+    sourceTokens: searchTokens(item.source),
+    descriptionTokens: searchTokens(item.description)
+  }));
+  const termFrequency = new Map(terms.map(term => [term, 0]));
+  for (const entry of items) {
+    const words = new Set([
+      ...entry.titleTokens,
+      ...entry.sourceTokens,
+      ...entry.descriptionTokens
+    ]);
+    for (const term of terms) {
+      if (words.has(term)) termFrequency.set(term, termFrequency.get(term) + 1);
+    }
+  }
+  const termWeight = new Map(terms.map(term => [
+    term,
+    Math.log((items.length + 1) / (termFrequency.get(term) + 1)) + 1
+  ]));
+  const scored = [];
+  for (const entry of items) {
+    const { item } = entry;
     if (category && item.category !== category) continue;
 
     if (terms.length === 0) {
@@ -75,23 +119,29 @@ function search(query, category) {
       continue;
     }
 
-    const title = item.title.toLowerCase();
-    const source = item.source.toLowerCase();
-    const desc = item.description.toLowerCase();
     let score = 0;
-    let matchedAll = true;
+    let matchedTerms = 0;
 
     for (const term of terms) {
-      if (title.includes(term)) score += 3;
-      else if (source.includes(term)) score += 2;
-      else if (desc.includes(term)) score += 1;
-      else { matchedAll = false; break; }
+      if (entry.titleTokens.has(term)) score += termWeight.get(term) * 3;
+      else if (entry.sourceTokens.has(term)) score += termWeight.get(term) * 2;
+      else if (entry.descriptionTokens.has(term)) score += termWeight.get(term);
+      else continue;
+      matchedTerms++;
     }
-    if (matchedAll) scored.push({ item, score });
+    if (matchedTerms > 0) {
+      if (entry.title.includes(normalizedQuery)) score += 5 + terms.reduce((sum, term) => sum + termWeight.get(term), 0);
+      scored.push({ item, score, matchedTerms });
+    }
   }
 
-  scored.sort((a, b) => b.score - a.score || a.item.title.localeCompare(b.item.title));
-  return scored.map(s => s.item);
+  scored.sort((a, b) =>
+    b.score - a.score ||
+    b.matchedTerms - a.matchedTerms ||
+    a.item.title.localeCompare(b.item.title)
+  );
+  const exactMatches = scored.filter(result => result.matchedTerms === terms.length);
+  return (exactMatches.length ? exactMatches : scored).map(result => result.item);
 }
 
 module.exports = function handler(req, res) {
