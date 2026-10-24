@@ -19,6 +19,7 @@ const CATEGORIES = ["History", "Automotive", "Real Estate", "Electronics", "Book
 const MAX_RESULTS = 60;
 const MAX_QUERY_LENGTH = 120;
 const MAX_OFFSET = 10000;
+const MAX_WIKIPEDIA_OFFSET = 500;
 
 let CACHE = null; // parsed once per warm serverless instance
 
@@ -139,7 +140,68 @@ function search(query, category) {
   return (exactMatches.length ? exactMatches : scored).map(result => result.item);
 }
 
-module.exports = function handler(req, res) {
+function stripHtml(value) {
+  return value
+    .replace(/<[^>]*>/g, "")
+    .replace(/&quot;|&#34;/g, '"')
+    .replace(/&#039;|&#39;/g, "'")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&amp;/g, "&")
+    .replace(/&nbsp;/g, " ");
+}
+
+async function searchWikipedia(query, offset, limit) {
+  const params = new URLSearchParams({
+    action: "query",
+    list: "search",
+    srsearch: query,
+    srlimit: String(limit),
+    sroffset: String(Math.min(offset, MAX_WIKIPEDIA_OFFSET)),
+    format: "json",
+    utf8: "1"
+  });
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 5000);
+  let response;
+  try {
+    response = await fetch(`https://en.wikipedia.org/w/api.php?${params}`, {
+      signal: controller.signal,
+      headers: {
+        Accept: "application/json",
+        "User-Agent": "AGGREGATE.io/1.0 (Wikipedia search)"
+      }
+    });
+  } finally {
+    clearTimeout(timeout);
+  }
+  if (!response.ok) throw new Error(`Wikipedia returned HTTP ${response.status}.`);
+
+  const data = await response.json();
+  const pages = data?.query?.search;
+  const totalHits = data?.query?.searchinfo?.totalhits;
+  if (!Array.isArray(pages) || !Number.isSafeInteger(totalHits) || totalHits < 0) {
+    throw new Error("Wikipedia returned invalid search results.");
+  }
+
+  const total = Math.min(totalHits, MAX_WIKIPEDIA_OFFSET);
+  const pageOffset = Math.min(offset, total);
+  return {
+    total,
+    offset: pageOffset,
+    results: pages
+      .filter(page => typeof page.title === "string" && typeof page.snippet === "string")
+      .map(page => ({
+        category: "Science & Tech",
+        source: "Wikipedia",
+        title: page.title,
+        description: stripHtml(page.snippet),
+        url: `https://en.wikipedia.org/wiki/${encodeURIComponent(page.title.replace(/ /g, "_"))}`
+      }))
+  };
+}
+
+module.exports = async function handler(req, res) {
   res.setHeader("X-Content-Type-Options", "nosniff");
 
   if (req.method !== "GET") {
@@ -179,21 +241,43 @@ module.exports = function handler(req, res) {
     offset = Number(rawOffset);
   }
 
+  let matching;
   try {
-    const matching = search(q, category || null);
-    const results = matching.slice(offset, offset + limit);
-    res.setHeader("Cache-Control", "public, s-maxage=300, stale-while-revalidate=600");
-    return res.status(200).json({
-      query: q,
-      category: category || null,
-      count: results.length,
-      total: matching.length,
-      offset,
-      limit,
-      results
-    });
+    matching = search(q, category || null);
   } catch (err) {
     console.error("links.txt could not be read:", err);
     return res.status(500).json({ error: "Search data is unavailable right now." });
   }
+
+  if (q && matching.length === 0 && (!category || category === "Science & Tech")) {
+    try {
+      const wikipedia = await searchWikipedia(q, offset, limit);
+      res.setHeader("Cache-Control", "public, s-maxage=300, stale-while-revalidate=600");
+      return res.status(200).json({
+        query: q,
+        category: category || null,
+        count: wikipedia.results.length,
+        total: wikipedia.total,
+        offset: wikipedia.offset,
+        limit,
+        results: wikipedia.results
+      });
+    } catch (err) {
+      console.error("Wikipedia search failed:", err);
+      return res.status(502).json({ error: "Wikipedia search is temporarily unavailable. Please try again." });
+    }
+  }
+
+  const pageOffset = Math.min(offset, matching.length);
+  const results = matching.slice(pageOffset, pageOffset + limit);
+  res.setHeader("Cache-Control", "public, s-maxage=300, stale-while-revalidate=600");
+  return res.status(200).json({
+    query: q,
+    category: category || null,
+    count: results.length,
+    total: matching.length,
+    offset: pageOffset,
+    limit,
+    results
+  });
 };

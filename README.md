@@ -15,7 +15,7 @@ Curated qidiruv. Natijalar faqat `data/links.txt` dagi linklardan keladi. API ka
 ```
 Kategoriya faqat: History, Automotive, Real Estate, Electronics, Books, News, Science & Tech. Wikipedia katalogdagi oddiy manba sifatida saqlanadi; boshqa yozuvlardan Wikipedia qidiruv havolalari chiqarilmaydi. `Browse all curated sources` tugmasi katalogdagi barcha yozuvlarni 60 tadan sahifalab ko'rsatadi; manba URL'i takrorlangan yozuvlar ham alohida ko'rsatiladi.
 
-`/api/search` bo'sh so'rov bilan barcha manbalarni topadi. `limit` 1–60 oralig'ida sahifa hajmini, `offset` keyingi sahifaning boshlanishini belgilaydi.
+`/api/search` bo'sh so'rov bilan barcha manbalarni topadi. Kategoriya tanlanmaganida (yoki `Science & Tech` tanlanganida) qidiruv katalogdan natija topmasa, Wikipedia'dan maqola sarlavhalari va qisqa tavsiflarini olib keladi. `limit` 1–60 oralig'ida sahifa hajmini, `offset` keyingi sahifaning boshlanishini belgilaydi.
 
 Qidiruv barcha so'zlari mos kelgan natijalarni oldinga chiqaradi; ular topilmasa, mos so'zlar bo'yicha tegishli natijalarni ko'rsatadi. Mashhur qidiruv tugmalari ham katalogdagi mavjud mavzulardan foydalanadi.
 
