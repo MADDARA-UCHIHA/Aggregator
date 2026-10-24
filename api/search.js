@@ -13,7 +13,7 @@ const path = require("path");
 
 const DATA_FILE = path.join(__dirname, "..", "data", "links.txt");
 const ENTRY_RE =
-  /^\s*\{\s*category:\s*"([^"]*)",\s*source:\s*"([^"]*)",\s*title:\s*"([^"]*)",\s*description:\s*"([^"]*)",\s*url:\s*"([^"]*)",\s*wikipediaUrl:\s*"([^"]*)"\s*\},?\s*$/;
+  /^\s*\{\s*category:\s*"([^"]*)",\s*source:\s*"([^"]*)",\s*title:\s*"([^"]*)",\s*description:\s*"([^"]*)",\s*url:\s*"([^"]*)"\s*\},?\s*$/;
 
 const CATEGORIES = ["History", "Automotive", "Real Estate", "Electronics", "Books", "News", "Science & Tech"];
 const MAX_RESULTS = 60;
@@ -44,19 +44,14 @@ function loadLinks() {
 
     if (!CATEGORIES.includes(m[1].trim())) continue;
     const url = normalizeUrl(m[5]);
-    const wikipediaUrl = normalizeUrl(m[6]);
-    if (!url || !wikipediaUrl) continue;
-    const wiki = new URL(wikipediaUrl);
-    if (wiki.hostname !== "en.wikipedia.org" || wiki.pathname !== "/w/index.php" ||
-        wiki.searchParams.get("search") !== m[3].trim()) continue;
+    if (!url) continue;
 
     items.push({
       category: m[1].trim(),
       source: m[2].replace(/\s+/g, " ").trim(),
       title: m[3].replace(/\s+/g, " ").trim(),
       description: m[4].replace(/\s+/g, " ").trim(),
-      url,
-      wikipediaUrl
+      url
     });
   }
   CACHE = items;

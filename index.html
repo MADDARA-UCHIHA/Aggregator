@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>AGGREGATE.io — Search</title>
+<link rel="icon" type="image/png" href="/assets/favicon.png">
 <meta name="description" content="AGGREGATE.io — curated search across history, tech, news, books, real estate, automotive and more.">
 <style>
   :root{
@@ -17,12 +18,6 @@
   button,input{font:inherit;color:inherit}
   button{cursor:pointer;border:none;background:none}
   :focus-visible{outline:2px solid var(--accent);outline-offset:2px}
-
-  .navbar{position:sticky;top:0;z-index:10;display:flex;align-items:center;justify-content:space-between;gap:1rem;background:linear-gradient(90deg,#0f172a 0%,#064e3b 100%);border-bottom:1px solid var(--border);padding:.7rem clamp(1rem,4vw,2.5rem)}
-  .logo{display:block;flex:0 1 248px;width:min(248px,55vw);padding:.25rem .55rem;border-radius:10px;background:#fff;line-height:0}
-  .logo img{display:block;width:100%;height:auto}
-  .wikipedia-home{flex:0 0 auto;padding:.55rem .9rem;border:1px solid var(--border);border-radius:999px;color:var(--text);font-size:.9rem;font-weight:600;text-decoration:none;transition:color .2s,border-color .2s,background .2s}
-  .wikipedia-home:hover{color:var(--accent);border-color:var(--accent2);background:rgba(52,211,153,.08)}
 
   .cats{display:flex;gap:.5rem;overflow-x:auto;padding:.9rem clamp(1rem,4vw,2.5rem);background:var(--elev);border-bottom:1px solid var(--border);scrollbar-width:none}
   .cats::-webkit-scrollbar{display:none}
@@ -73,9 +68,6 @@
   #featured h2{font-size:1.15rem;margin-bottom:.35rem}
   #featured>p{color:var(--muted);font-size:.9rem;margin-bottom:1rem}
   .links{display:flex;flex-direction:column;gap:.75rem}
-  .card-links{display:flex;flex-wrap:wrap;gap:.65rem}
-  .wiki{color:var(--accent);font-size:.85rem;text-decoration:none}
-  .wiki:hover{text-decoration:underline}
   .browse,.more{display:block;margin:1rem auto;padding:.65rem 1.2rem;border:1px solid var(--accent2);border-radius:999px;color:var(--accent);transition:background .2s}
   .browse:hover,.more:hover:not(:disabled){background:rgba(52,211,153,.12)}
   .more:disabled{cursor:wait;opacity:.7}
@@ -91,11 +83,6 @@
 </style>
 </head>
 <body>
-
-<header class="navbar">
-  <a class="logo" id="logo" href="#" aria-label="AGGREGATE.io home"><img src="/assets/aggregate-logo.png" alt="AGGREGATE.io"></a>
-  <a class="wikipedia-home" href="https://www.wikipedia.org/" target="_blank" rel="noopener noreferrer">Wikipedia ↗</a>
-</header>
 
 <nav class="cats" id="cats" aria-label="Categories"></nav>
 

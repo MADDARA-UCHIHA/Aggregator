@@ -64,9 +64,6 @@
     description.className = "cs";
     description.textContent = item.description;
 
-    const links = document.createElement("div");
-    links.className = "card-links";
-
     const open = document.createElement("a");
     open.className = "open";
     open.href = sourceUrl;
@@ -74,17 +71,7 @@
     open.rel = "noopener noreferrer";
     open.textContent = "Open Source ↗";
 
-    const wikipediaUrl = safeHref(item.wikipediaUrl);
-    if (!wikipediaUrl) return null;
-    const wikipedia = document.createElement("a");
-    wikipedia.className = "wiki";
-    wikipedia.href = wikipediaUrl;
-    wikipedia.target = "_blank";
-    wikipedia.rel = "noopener noreferrer";
-    wikipedia.textContent = "Wikipedia ↗";
-
-    links.append(open, wikipedia);
-    card.append(badge, title, description, links);
+    card.append(badge, title, description, open);
     return card;
   }
 
@@ -180,7 +167,7 @@
   function renderResults(data, append = false) {
     const visibleItems = data.results.filter(item =>
       item && typeof item.title === "string" && typeof item.source === "string" &&
-      typeof item.description === "string" && safeHref(item.url) && safeHref(item.wikipediaUrl)
+      typeof item.description === "string" && safeHref(item.url)
     );
     const label = query ? ` for “<strong>${esc(query)}</strong>”` : "";
     const scope = category ? ` in <strong>${esc(category)}</strong>` : "";
@@ -287,11 +274,6 @@
   });
 
   $("back").addEventListener("click", showHero);
-  $("logo").addEventListener("click", event => {
-    event.preventDefault();
-    showHero();
-  });
-
   $("year").textContent = new Date().getFullYear();
   renderCategories();
   renderTags();

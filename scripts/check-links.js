@@ -2,7 +2,7 @@
 const fs = require("fs");
 const path = require("path");
 const text = fs.readFileSync(path.join(__dirname, "..", "data", "links.txt"), "utf8");
-const re = /^\s*\{\s*category:\s*"([^"]*)",\s*source:\s*"([^"]*)",\s*title:\s*"([^"]*)",\s*description:\s*"([^"]*)",\s*url:\s*"([^"]*)",\s*wikipediaUrl:\s*"([^"]*)"\s*\},?\s*$/;
+const re = /^\s*\{\s*category:\s*"([^"]*)",\s*source:\s*"([^"]*)",\s*title:\s*"([^"]*)",\s*description:\s*"([^"]*)",\s*url:\s*"([^"]*)"\s*\},?\s*$/;
 const categories = new Set(["History", "Automotive", "Real Estate", "Electronics", "Books", "News", "Science & Tech"]);
 const seen = new Set(); const counts = {}; let bad = 0, dup = 0, total = 0, valid = 0;
 for (const line of text.split(/\r?\n/)) {
@@ -15,12 +15,6 @@ for (const line of text.split(/\r?\n/)) {
   try { url = new URL(m[5]); } catch { bad++; console.log("URL xato:", m[5]); continue; }
   if (url.protocol !== "https:" || !url.hostname || url.username || url.password) {
     bad++; console.log("Xavfsiz bo'lmagan URL:", m[5]); continue;
-  }
-  let wikipediaUrl;
-  try { wikipediaUrl = new URL(m[6]); } catch { bad++; console.log("Wikipedia URL xato:", m[6]); continue; }
-  if (wikipediaUrl.protocol !== "https:" || wikipediaUrl.hostname !== "en.wikipedia.org" ||
-      wikipediaUrl.pathname !== "/w/index.php" || wikipediaUrl.searchParams.get("search") !== m[3].trim()) {
-    bad++; console.log("Wikipedia URL xato:", m[6]); continue;
   }
   valid++;
   counts[m[1]] = (counts[m[1]] || 0) + 1;
