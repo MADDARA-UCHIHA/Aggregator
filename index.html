@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AGGREGATE.io — Search</title>
+<meta name="description" content="AGGREGATE.io — curated search across history, tech, news, books, real estate, automotive and more.">
+<style>
+  :root{
+    --bg:#0f172a; --elev:#111c33; --card:#162238; --hover:#1c2b47; --border:#22324f;
+    --text:#e2e8f0; --muted:#94a3b8; --accent:#34d399; --accent2:#10b981;
+    --glow:rgba(52,211,153,.35); --danger:#f87171; --r:16px;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{min-height:100%}
+  body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;background:var(--bg);color:var(--text);display:flex;flex-direction:column;line-height:1.5;-webkit-font-smoothing:antialiased}
+  button,input{font:inherit;color:inherit}
+  button{cursor:pointer;border:none;background:none}
+  :focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+
+  .navbar{position:sticky;top:0;z-index:10;background:linear-gradient(90deg,#0f172a 0%,#064e3b 100%);border-bottom:1px solid var(--border);padding:.9rem clamp(1rem,4vw,2.5rem)}
+  .logo{display:inline-block;font-size:1.35rem;font-weight:700;letter-spacing:-.02em;color:var(--accent);cursor:pointer;user-select:none}
+  .logo span{color:var(--text);font-weight:500}
+
+  .cats{display:flex;gap:.5rem;overflow-x:auto;padding:.9rem clamp(1rem,4vw,2.5rem);background:var(--elev);border-bottom:1px solid var(--border);scrollbar-width:none}
+  .cats::-webkit-scrollbar{display:none}
+  .chip{flex:0 0 auto;padding:.45rem 1rem;border-radius:999px;border:1px solid var(--border);background:var(--card);color:var(--muted);font-size:.88rem;white-space:nowrap;transition:.2s}
+  .chip:hover{color:var(--text);border-color:var(--accent2)}
+  .chip[aria-pressed="true"]{background:rgba(52,211,153,.12);border-color:var(--accent);color:var(--accent)}
+
+  main{flex:1;width:100%;max-width:960px;margin:0 auto;padding:0 clamp(1rem,4vw,2rem)}
+  .view{display:none}
+  .view.active{display:block;animation:fade .35s ease}
+  @keyframes fade{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+
+  #hero{flex-direction:column;align-items:center;text-align:center;padding:clamp(3rem,12vh,7rem) 0 3rem}
+  #hero.active{display:flex}
+  .title{font-size:clamp(1.6rem,4.5vw,2.6rem);font-weight:650;letter-spacing:-.02em;margin-bottom:2rem}
+  .sw{position:relative;width:100%;max-width:640px}
+  .sicon{position:absolute;left:1.1rem;top:50%;transform:translateY(-50%);width:18px;height:18px;color:var(--muted);pointer-events:none}
+  .box{width:100%;padding:1rem 1.4rem 1rem 3rem;font-size:1rem;background:var(--card);border:1px solid var(--border);border-radius:999px;outline:none;transition:border-color .25s,box-shadow .25s}
+  .box::placeholder{color:var(--muted)}
+  .box:focus{border-color:var(--accent);box-shadow:0 0 0 4px var(--glow),0 0 28px rgba(52,211,153,.25)}
+  .lbl{margin-top:1.8rem;font-size:.8rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+  .tags{display:flex;flex-wrap:wrap;justify-content:center;gap:.55rem;margin-top:.9rem;max-width:640px}
+  .tag{padding:.4rem .9rem;border-radius:999px;background:rgba(255,255,255,.04);border:1px solid var(--border);font-size:.86rem;color:var(--muted);transition:.2s}
+  .tag:hover{color:var(--accent);border-color:var(--accent2)}
+
+  #results{padding:2rem 0 3rem}
+  .rh{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:1rem;margin-bottom:1.5rem}
+  .sum{color:var(--muted);font-size:.95rem}
+  .sum strong{color:var(--text)}
+  .back{padding:.55rem 1.1rem;border-radius:999px;border:1px solid var(--border);background:var(--card);font-size:.9rem;transition:.2s}
+  .back:hover{border-color:var(--accent);color:var(--accent)}
+  .list{display:flex;flex-direction:column;gap:1rem}
+  .card{background:var(--card);border:1px solid var(--border);border-radius:var(--r);padding:1.25rem 1.4rem;transition:background .2s,border-color .2s,transform .2s}
+  .card:hover{background:var(--hover);border-color:var(--accent2);transform:translateY(-2px)}
+  .badge{display:inline-block;margin-bottom:.6rem;padding:.2rem .7rem;border-radius:999px;background:rgba(52,211,153,.12);color:var(--accent);font-size:.75rem;font-weight:600;letter-spacing:.03em}
+  .ct{display:block;font-size:1.1rem;font-weight:600;margin-bottom:.4rem;line-height:1.35;word-break:break-word;color:var(--text);text-decoration:none}
+  .ct:hover{color:var(--accent)}
+  .cs{color:var(--muted);font-size:.93rem;margin-bottom:1rem;word-break:break-word}
+  .open{display:inline-block;padding:.5rem 1rem;border-radius:12px;background:linear-gradient(135deg,var(--accent),var(--accent2));color:#04251b;font-size:.85rem;font-weight:600;text-decoration:none;transition:transform .15s,box-shadow .2s}
+  .open:hover{transform:translateY(-1px);box-shadow:0 6px 18px var(--glow)}
+  .skel{height:110px;border-radius:var(--r);border:1px solid var(--border);background:linear-gradient(90deg,var(--card) 25%,var(--hover) 50%,var(--card) 75%);background-size:200% 100%;animation:sh 1.4s infinite}
+  @keyframes sh{0%{background-position:200% 0}100%{background-position:-200% 0}}
+  .state{text-align:center;padding:3.5rem 1rem;color:var(--muted);border:1px dashed var(--border);border-radius:var(--r)}
+  .state h3{color:var(--text);font-size:1.15rem;margin-bottom:.4rem}
+  .state.err h3{color:var(--danger)}
+  .retry{margin-top:1rem;padding:.5rem 1.1rem;border-radius:999px;border:1px solid var(--accent);color:var(--accent)}
+
+  footer{text-align:center;padding:1.5rem;font-size:.8rem;color:var(--muted);border-top:1px solid var(--border)}
+
+  @media (max-width:600px){
+    .rh{flex-direction:column;align-items:stretch}
+    .back{width:100%}
+    .open{display:block;text-align:center}
+  }
+</style>
+</head>
+<body>
+
+<header class="navbar">
+  <a class="logo" id="logo" href="#" aria-label="AGGREGATE.io home">AGGREGATE<span>.io</span></a>
+</header>
+
+<nav class="cats" id="cats" aria-label="Categories"></nav>
+
+<main>
+  <section id="hero" class="view active">
+    <h1 class="title">Hello, what you wanna search today?</h1>
+    <div class="sw">
+      <svg class="sicon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <input id="q" class="box" type="search" placeholder="Search..." autocomplete="off" aria-label="Search">
+    </div>
+    <p class="lbl">Frequent searches</p>
+    <div class="tags" id="tags"></div>
+  </section>
+
+  <section id="results" class="view" aria-live="polite">
+    <div class="rh">
+      <p class="sum" id="sum"></p>
+      <button class="back" id="back" type="button">← Back to search</button>
+    </div>
+    <div class="list" id="list"></div>
+  </section>
+</main>
+
+<footer>&copy; <span id="year"></span> AGGREGATE.io</footer>
+
+<script>
+(() => {
+  "use strict";
+
+  const CATEGORIES = ["History", "Automotive", "Real Estate", "Electronics", "Books", "News", "Science & Tech"];
+  const FREQUENT = ["iPhone 16", "World War II", "Tesla Model 3", "Atomic Habits"];
+
+  const $ = id => document.getElementById(id);
+  const hero = $("hero"), results = $("results"), input = $("q"), list = $("list"), sum = $("sum");
+
+  let category = null;   // null = All
+  let query = "";
+  let controller = null; // aborts stale requests
+
+  const esc = s => String(s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+  const safeHref = u => { try { const x = new URL(u); return /^https?:$/.test(x.protocol) ? x.href : "#"; } catch { return "#"; } };
+
+  function renderCategories() {
+    $("cats").innerHTML = ["All", ...CATEGORIES].map(c => {
+      const on = c === "All" ? category === null : c === category;
+      return `<button class="chip" type="button" data-c="${esc(c)}" aria-pressed="${on}">${esc(c)}</button>`;
+    }).join("");
+  }
+
+  function renderTags() {
+    $("tags").innerHTML = FREQUENT.map(t => `<button class="tag" type="button" data-q="${esc(t)}">${esc(t)}</button>`).join("");
+  }
+
+  function showHero() {
+    if (controller) controller.abort();
+    results.classList.remove("active");
+    hero.classList.add("active");
+    input.value = "";
+    query = "";
+    window.scrollTo({ top: 0, behavior: "smooth" });
+    input.focus();
+  }
+
+  function showLoading() {
+    hero.classList.remove("active");
+    results.classList.add("active");
+    sum.textContent = "Searching…";
+    list.innerHTML = Array.from({ length: 4 }, () => `<div class="skel" aria-hidden="true"></div>`).join("");
+  }
+
+  function renderError(msg) {
+    sum.textContent = "";
+    list.innerHTML = `<div class="state err"><h3>Something went wrong</h3><p>${esc(msg)}</p><button class="retry" id="retry" type="button">Try again</button></div>`;
+  }
+
+  function renderResults(data) {
+    const items = data.results || [];
+    const label = query ? ` for “<strong>${esc(query)}</strong>”` : "";
+    const scope = category ? ` in <strong>${esc(category)}</strong>` : "";
+    sum.innerHTML = `<strong>${items.length}</strong> result${items.length === 1 ? "" : "s"}${label}${scope}`;
+
+    if (!items.length) {
+      list.innerHTML = `<div class="state"><h3>No results found</h3><p>Try a different keyword${category ? " or choose another category" : ""}.</p></div>`;
+      return;
+    }
+
+    list.innerHTML = items.map(it => {
+      const href = esc(safeHref(it.url));
+      return `
+        <article class="card">
+          <span class="badge">${esc(it.source)}</span>
+          <a class="ct" href="${href}" target="_blank" rel="noopener noreferrer">${esc(it.title)}</a>
+          <p class="cs">${esc(it.description)}</p>
+          <a class="open" href="${href}" target="_blank" rel="noopener noreferrer">Open Source ↗</a>
+        </article>`;
+    }).join("");
+  }
+
+  async function search(q) {
+    query = q;
+    showLoading();
+    if (controller) controller.abort();
+    controller = new AbortController();
+
+    const params = new URLSearchParams();
+    if (q) params.set("q", q);
+    if (category) params.set("category", category);
+
+    try {
+      const res = await fetch(`/api/search?${params}`, { signal: controller.signal, headers: { Accept: "application/json" } });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) return renderError(data.error || `Request failed (${res.status}).`);
+      renderResults(data);
+    } catch (err) {
+      if (err.name === "AbortError") return;
+      renderError("Network error. Check your connection and try again.");
+    }
+  }
+
+  function runFromInput() {
+    const v = input.value.trim();
+    if (!v && category === null) { input.focus(); return; }
+    search(v);
+  }
+
+  input.addEventListener("keydown", e => { if (e.key === "Enter") runFromInput(); });
+
+  $("tags").addEventListener("click", e => {
+    const t = e.target.closest(".tag");
+    if (!t) return;
+    input.value = t.dataset.q;
+    search(t.dataset.q);
+  });
+
+  $("cats").addEventListener("click", e => {
+    const chip = e.target.closest(".chip");
+    if (!chip) return;
+    category = chip.dataset.c === "All" ? null : chip.dataset.c;
+    renderCategories();
+    if (results.classList.contains("active")) search(query);
+    else if (input.value.trim()) search(input.value.trim());
+    else { input.focus(); }
+  });
+
+  list.addEventListener("click", e => {
+    if (e.target.id === "retry") search(query);
+  });
+
+  $("back").addEventListener("click", showHero);
+  $("logo").addEventListener("click", e => { e.preventDefault(); showHero(); });
+
+  $("year").textContent = new Date().getFullYear();
+  renderCategories();
+  renderTags();
+})();
+</script>
+</body>
+</html>
