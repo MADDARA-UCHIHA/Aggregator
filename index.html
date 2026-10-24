@@ -67,6 +67,13 @@
   .state h3{color:var(--text);font-size:1.15rem;margin-bottom:.4rem}
   .state.err h3{color:var(--danger)}
   .retry{margin-top:1rem;padding:.5rem 1.1rem;border-radius:999px;border:1px solid var(--accent);color:var(--accent)}
+  #featured{width:100%;max-width:640px;margin-top:2.5rem;text-align:left}
+  #featured h2{font-size:1.15rem;margin-bottom:.35rem}
+  #featured>p{color:var(--muted);font-size:.9rem;margin-bottom:1rem}
+  .links{display:flex;flex-direction:column;gap:.75rem}
+  .card-links{display:flex;flex-wrap:wrap;gap:.65rem}
+  .wiki{color:var(--accent);font-size:.85rem;text-decoration:none}
+  .wiki:hover{text-decoration:underline}
 
   footer{text-align:center;padding:1.5rem;font-size:.8rem;color:var(--muted);border-top:1px solid var(--border)}
 
@@ -90,10 +97,18 @@
     <h1 class="title">Hello, what you wanna search today?</h1>
     <div class="sw">
       <svg class="sicon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-      <input id="q" class="box" type="search" placeholder="Search..." autocomplete="off" aria-label="Search">
+      <input id="q" class="box" type="search" placeholder="Search..." autocomplete="off" maxlength="120" aria-label="Search">
     </div>
     <p class="lbl">Frequent searches</p>
     <div class="tags" id="tags"></div>
+    <section id="featured" aria-labelledby="featured-title">
+      <h2 id="featured-title">Explore curated sources</h2>
+      <p>Start with these useful links, or search the full collection.</p>
+      <div class="links" id="featured-list" aria-live="polite">
+        <div class="skel" aria-hidden="true"></div>
+        <div class="skel" aria-hidden="true"></div>
+      </div>
+    </section>
   </section>
 
   <section id="results" class="view" aria-live="polite">
@@ -107,136 +122,6 @@
 
 <footer>&copy; <span id="year"></span> AGGREGATE.io</footer>
 
-<script>
-(() => {
-  "use strict";
-
-  const CATEGORIES = ["History", "Automotive", "Real Estate", "Electronics", "Books", "News", "Science & Tech"];
-  const FREQUENT = ["iPhone 16", "World War II", "Tesla Model 3", "Atomic Habits"];
-
-  const $ = id => document.getElementById(id);
-  const hero = $("hero"), results = $("results"), input = $("q"), list = $("list"), sum = $("sum");
-
-  let category = null;   // null = All
-  let query = "";
-  let controller = null; // aborts stale requests
-
-  const esc = s => String(s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
-  const safeHref = u => { try { const x = new URL(u); return /^https?:$/.test(x.protocol) ? x.href : "#"; } catch { return "#"; } };
-
-  function renderCategories() {
-    $("cats").innerHTML = ["All", ...CATEGORIES].map(c => {
-      const on = c === "All" ? category === null : c === category;
-      return `<button class="chip" type="button" data-c="${esc(c)}" aria-pressed="${on}">${esc(c)}</button>`;
-    }).join("");
-  }
-
-  function renderTags() {
-    $("tags").innerHTML = FREQUENT.map(t => `<button class="tag" type="button" data-q="${esc(t)}">${esc(t)}</button>`).join("");
-  }
-
-  function showHero() {
-    if (controller) controller.abort();
-    results.classList.remove("active");
-    hero.classList.add("active");
-    input.value = "";
-    query = "";
-    window.scrollTo({ top: 0, behavior: "smooth" });
-    input.focus();
-  }
-
-  function showLoading() {
-    hero.classList.remove("active");
-    results.classList.add("active");
-    sum.textContent = "Searching…";
-    list.innerHTML = Array.from({ length: 4 }, () => `<div class="skel" aria-hidden="true"></div>`).join("");
-  }
-
-  function renderError(msg) {
-    sum.textContent = "";
-    list.innerHTML = `<div class="state err"><h3>Something went wrong</h3><p>${esc(msg)}</p><button class="retry" id="retry" type="button">Try again</button></div>`;
-  }
-
-  function renderResults(data) {
-    const items = data.results || [];
-    const label = query ? ` for “<strong>${esc(query)}</strong>”` : "";
-    const scope = category ? ` in <strong>${esc(category)}</strong>` : "";
-    sum.innerHTML = `<strong>${items.length}</strong> result${items.length === 1 ? "" : "s"}${label}${scope}`;
-
-    if (!items.length) {
-      list.innerHTML = `<div class="state"><h3>No results found</h3><p>Try a different keyword${category ? " or choose another category" : ""}.</p></div>`;
-      return;
-    }
-
-    list.innerHTML = items.map(it => {
-      const href = esc(safeHref(it.url));
-      return `
-        <article class="card">
-          <span class="badge">${esc(it.source)}</span>
-          <a class="ct" href="${href}" target="_blank" rel="noopener noreferrer">${esc(it.title)}</a>
-          <p class="cs">${esc(it.description)}</p>
-          <a class="open" href="${href}" target="_blank" rel="noopener noreferrer">Open Source ↗</a>
-        </article>`;
-    }).join("");
-  }
-
-  async function search(q) {
-    query = q;
-    showLoading();
-    if (controller) controller.abort();
-    controller = new AbortController();
-
-    const params = new URLSearchParams();
-    if (q) params.set("q", q);
-    if (category) params.set("category", category);
-
-    try {
-      const res = await fetch(`/api/search?${params}`, { signal: controller.signal, headers: { Accept: "application/json" } });
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) return renderError(data.error || `Request failed (${res.status}).`);
-      renderResults(data);
-    } catch (err) {
-      if (err.name === "AbortError") return;
-      renderError("Network error. Check your connection and try again.");
-    }
-  }
-
-  function runFromInput() {
-    const v = input.value.trim();
-    if (!v && category === null) { input.focus(); return; }
-    search(v);
-  }
-
-  input.addEventListener("keydown", e => { if (e.key === "Enter") runFromInput(); });
-
-  $("tags").addEventListener("click", e => {
-    const t = e.target.closest(".tag");
-    if (!t) return;
-    input.value = t.dataset.q;
-    search(t.dataset.q);
-  });
-
-  $("cats").addEventListener("click", e => {
-    const chip = e.target.closest(".chip");
-    if (!chip) return;
-    category = chip.dataset.c === "All" ? null : chip.dataset.c;
-    renderCategories();
-    if (results.classList.contains("active")) search(query);
-    else if (input.value.trim()) search(input.value.trim());
-    else { input.focus(); }
-  });
-
-  list.addEventListener("click", e => {
-    if (e.target.id === "retry") search(query);
-  });
-
-  $("back").addEventListener("click", showHero);
-  $("logo").addEventListener("click", e => { e.preventDefault(); showHero(); });
-
-  $("year").textContent = new Date().getFullYear();
-  renderCategories();
-  renderTags();
-})();
-</script>
+<script src="/app.js" defer></script>
 </body>
 </html>
